@@ -20,10 +20,31 @@ const fields = [
 
 export default function ResultsPage() {
   const router = useRouter()
-  const form = useFormStore((s) => s)
+  const preferredName = useFormStore((s) => s.preferredName)
+  const backgroundSummary = useFormStore((s) => s.backgroundSummary)
+  const workEnvironment = useFormStore((s) => s.workEnvironment)
+  const industryPreference = useFormStore((s) => s.industryPreference)
+  const workPriorities = useFormStore((s) => s.workPriorities)
+  const locationPreference = useFormStore((s) => s.locationPreference)
+  const targetLevel = useFormStore((s) => s.targetLevel)
+  const timeline = useFormStore((s) => s.timeline)
+  const dealbreakers = useFormStore((s) => s.dealbreakers)
+  const additionalNotes = useFormStore((s) => s.additionalNotes)
 
   const copyProfile = async (): Promise<void> => {
-    const text = Object.entries(form).filter(([k]) => !['setField', 'setAll', 'setLoading', 'reset', 'isLoading'].includes(k)).map(([key, value]) => `${key}: ${String(value)}`).join('\n')
+    const formData = {
+      preferredName,
+      backgroundSummary,
+      workEnvironment,
+      industryPreference,
+      workPriorities,
+      locationPreference,
+      targetLevel,
+      timeline,
+      dealbreakers,
+      additionalNotes,
+    }
+    const text = Object.entries(formData).map(([key, value]) => `${key}: ${String(value)}`).join('\n')
     await navigator.clipboard.writeText(text)
   }
 
