@@ -5,6 +5,7 @@ const closing = (name: string) => `Thanks ${name || 'there'} — I have everythi
 
 export async function sendMessage(userText: string, onComplete: () => void): Promise<void> {
   const chat = useChatStore.getState()
+  chat.clearError()
   chat.addUserMessage(userText)
   if (chat.currentQuestionIndex === 0 && !chat.userName) chat.setUserName(userText)
 
@@ -13,7 +14,11 @@ export async function sendMessage(userText: string, onComplete: () => void): Pro
 
   const payload = { messages: updated.messages.filter((m) => !m.streaming).map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content })) }
   const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-  if (!res.body) return
+  if (!res.body) {
+    useChatStore.getState().setError('Chat response stream was empty.')
+    useChatStore.getState().finaliseBotMessage()
+    return
+  }
 
   const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = ''
   while (true) {
@@ -23,8 +28,14 @@ export async function sendMessage(userText: string, onComplete: () => void): Pro
     for (const event of events) {
       const line = event.trim(); if (!line.startsWith('data:')) continue
       const data = line.slice(5).trim()
+      if (data.startsWith('[ERROR]')) {
+        useChatStore.getState().setError(data.replace('[ERROR]', '').trim())
+        useChatStore.getState().appendToken('Sorry, I ran into an error.')
+        continue
+      }
       if (data === '[DONE]') {
-        const state = useChatStore.getState(); state.finaliseBotMessage();
+        const state = useChatStore.getState(); state.finaliseBotMessage()
+        if (state.lastError) return
         if (state.currentQuestionIndex >= 9) {
           state.markComplete(); state.addUserMessage('')
           state.startBotMessage(); state.appendToken(closing(state.userName)); state.finaliseBotMessage()

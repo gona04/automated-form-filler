@@ -11,6 +11,7 @@ const INPUT_ID = 'chat-message-input'
 
 export function MessageInput() {
   const isStreaming = useChatStore((s) => s.isStreaming)
+  const lastError = useChatStore((s) => s.lastError)
   const router = useRouter()
 
   const onSubmit: React.FormEventHandler<HTMLFormElement> = async (e) => {
@@ -23,10 +24,13 @@ export function MessageInput() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="border-t p-4 flex gap-2 bg-white">
-      <input id={INPUT_ID} name="message" disabled={isStreaming} className="flex-1 rounded-md border px-3 py-2" placeholder="Type your answer..." />
-      <SpeechButton inputId={INPUT_ID} />
-      <button disabled={isStreaming} className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit">Send</button>
-    </form>
+    <div className="border-t p-4 bg-white">
+      <form onSubmit={onSubmit} className="flex gap-2">
+        <input id={INPUT_ID} name="message" disabled={isStreaming} className="flex-1 rounded-md border px-3 py-2" placeholder="Type your answer..." />
+        <SpeechButton inputId={INPUT_ID} />
+        <button disabled={isStreaming} className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit">Send</button>
+      </form>
+      {lastError ? <p className="mt-2 text-sm text-red-600">Error: {lastError}</p> : null}
+    </div>
   )
 }
