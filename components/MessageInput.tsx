@@ -53,13 +53,11 @@ export function MessageInput() {
             className="w-full min-h-10 max-h-40 resize-none overflow-y-auto rounded-md border px-3 py-2"
             placeholder="Type your answer..."
           />
-          <div className="flex justify-end">
-            <button disabled={isStreaming} className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit">Send</button>
-          </div>
         </div>
         <div className="h-px bg-zinc-200/70" />
-        <div className="flex h-12 items-center justify-center">
+        <div className="flex h-12 items-center justify-end gap-2">
           <SpeechButton inputId={INPUT_ID} />
+          <button disabled={isStreaming} className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit">Send</button>
         </div>
       </form>
       {lastError ? <p className="mt-2 text-sm text-red-600">Error: {lastError}</p> : null}
