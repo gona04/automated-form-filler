@@ -10,26 +10,45 @@ const describeError = (error: unknown): string => {
   return 'Unknown error'
 }
 
+const isDnsResolutionIssue = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  return message.includes('enotfound') || message.includes('dns') || message.includes('could not resolve') || message.includes('fetch failed')
+}
+
 export class HuggingFaceAdapter implements AIAdapter {
   private model = process.env.HF_MODEL_ID ?? 'mistralai/Mistral-7B-Instruct-v0.2'
   private apiKey = process.env.HF_API_KEY
+  private baseUrl = process.env.HF_BASE_URL ?? 'https://api-inference.huggingface.co'
+  private fallbackBaseUrl = process.env.HF_FALLBACK_BASE_URL ?? 'https://router.huggingface.co/hf-inference'
+
+  private async request(baseUrl: string, messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): Promise<Response> {
+    return fetch(`${baseUrl}/models/${this.model}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: this.model,
+        stream: true,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+      }),
+    })
+  }
 
   async *streamResponse(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): AsyncGenerator<string> {
     if (!this.apiKey) throw new Error('HF_API_KEY is required')
 
     let response: Response
     try {
-      response = await fetch(`https://api-inference.huggingface.co/models/${this.model}/v1/chat/completions`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: this.model,
-          stream: true,
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        }),
-      })
+      response = await this.request(this.baseUrl, messages, systemPrompt)
     } catch (error: unknown) {
-      throw new Error(`Network request to Hugging Face failed. ${describeError(error)}`)
+      if (isDnsResolutionIssue(error) && this.baseUrl !== this.fallbackBaseUrl) {
+        try {
+          response = await this.request(this.fallbackBaseUrl, messages, systemPrompt)
+        } catch (fallbackError: unknown) {
+          throw new Error(`Network request to Hugging Face failed on both primary (${this.baseUrl}) and fallback (${this.fallbackBaseUrl}). Primary: ${describeError(error)}. Fallback: ${describeError(fallbackError)}`)
+        }
+      } else {
+        throw new Error(`Network request to Hugging Face failed. ${describeError(error)}`)
+      }
     }
 
     if (!response.ok || !response.body) {
