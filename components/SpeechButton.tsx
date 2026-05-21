@@ -42,7 +42,7 @@ export function SpeechButton({ inputId }: Props) {
       return
     }
 
-    const input = document.getElementById(inputId) as HTMLInputElement | null
+    const input = document.getElementById(inputId) as HTMLTextAreaElement | null
     if (!input) return
 
     input.focus()
@@ -70,6 +70,7 @@ export function SpeechButton({ inputId }: Props) {
 
       const interimText = interimSegments.join(' ').trim()
       input.value = `${finalizedText} ${interimText}`.trim()
+      input.dispatchEvent(new Event('input', { bubbles: true }))
       input.focus()
       input.setSelectionRange(input.value.length, input.value.length)
       scheduleAutoStop()
@@ -98,18 +99,19 @@ export function SpeechButton({ inputId }: Props) {
 
   return (
     <div className="flex items-center gap-2">
+      {isRecording ? <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden /> : null}
+      <span className={`text-xs font-medium ${isRecording ? 'text-red-600' : 'text-zinc-500'}`}>{isRecording ? 'Mic on' : 'Mic off'}</span>
       <button
         type="button"
         aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
-        className={`rounded-md border px-3 py-2 transition ${isRecording ? 'border-red-600 bg-red-100 ring-2 ring-red-300' : ''}`}
+        className={`rounded-full border p-3 transition ${isRecording ? 'border-red-600 bg-red-100 ring-2 ring-red-300' : 'border-zinc-300 bg-white hover:bg-zinc-50'}`}
         onClick={onClick}
       >
-        🎤
+        <svg viewBox="0 0 24 24" className={`h-5 w-5 ${isRecording ? 'text-red-700' : 'text-zinc-700'}`} fill="currentColor" aria-hidden>
+          <rect x="8" y="2.5" width="8" height="13" rx="4" />
+          <path d="M18 10.5a1 1 0 1 0-2 0 4 4 0 1 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V19H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.59a6 6 0 0 0 5-5.91Z" />
+        </svg>
       </button>
-      <span className={`text-xs font-medium ${isRecording ? 'text-red-600' : 'text-zinc-500'}`}>
-        {isRecording ? 'Listening…' : 'Mic off'}
-      </span>
-      {isRecording ? <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden /> : null}
     </div>
   )
 }
