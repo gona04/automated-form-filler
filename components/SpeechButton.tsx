@@ -21,42 +21,26 @@ export function SpeechButton({ inputId }: Props) {
     const input = document.getElementById(inputId) as HTMLInputElement | null
     if (!input) return
 
-    input.focus()
-
     const recognition = new SpeechRecognition()
     recognition.interimResults = true
-    recognition.continuous = true
+    recognition.continuous = false
 
-    let finalizedText = input.value.trim()
-    let silenceTimer: ReturnType<typeof setTimeout> | null = null
-
-    const scheduleAutoStop = (): void => {
-      if (silenceTimer) clearTimeout(silenceTimer)
-      silenceTimer = setTimeout(() => recognition.stop(), 5000)
-    }
+    let finalizedText = ''
 
     recognition.onresult = (event) => {
-      const interimSegments: string[] = []
-      for (let i = 0; i < event.results.length; i += 1) {
+      const segments: string[] = []
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const transcript = event.results[i][0]?.transcript?.trim()
-        if (!transcript) continue
-        if (event.results[i].isFinal) finalizedText = `${finalizedText} ${transcript}`.trim()
-        else interimSegments.push(transcript)
+        if (transcript) segments.push(transcript)
       }
-
-      const interimText = interimSegments.join(' ').trim()
-      input.value = `${finalizedText} ${interimText}`.trim()
-      input.focus()
-      scheduleAutoStop()
+      input.value = segments.join(' ')
     }
 
     recognition.onerror = () => {
-      if (silenceTimer) clearTimeout(silenceTimer)
       input.focus()
     }
 
     recognition.onend = () => {
-      if (silenceTimer) clearTimeout(silenceTimer)
       input.focus()
     }
 
