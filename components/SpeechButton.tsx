@@ -1,10 +1,8 @@
 'use client'
 
-type Props = { inputId: string }
+import { useRef, useState } from 'react'
 
-type SpeechRecognitionAlternativeLike = { transcript?: string }
-type SpeechRecognitionResultLike = { 0?: SpeechRecognitionAlternativeLike; isFinal?: boolean }
-type SpeechRecognitionEventLike = { resultIndex: number; results: SpeechRecognitionResultLike[] }
+type Props = { inputId: string }
 
 type SpeechCtor = new () => {
   interimResults: boolean
@@ -17,11 +15,18 @@ type SpeechCtor = new () => {
 }
 
 export function SpeechButton({ inputId }: Props) {
+  const [isRecording, setIsRecording] = useState(false)
+  const recognitionRef = useRef<InstanceType<SpeechCtor> | null>(null)
   const speechWindow = typeof window === 'undefined' ? undefined : (window as Window & { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor })
   const SpeechRecognition = speechWindow?.SpeechRecognition ?? speechWindow?.webkitSpeechRecognition
   if (!SpeechRecognition) return <></>
 
   const onClick = (): void => {
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop()
+      return
+    }
+
     const input = document.getElementById(inputId) as HTMLInputElement | null
     if (!input) return
 
@@ -36,7 +41,7 @@ export function SpeechButton({ inputId }: Props) {
 
     const scheduleAutoStop = (): void => {
       if (silenceTimer) clearTimeout(silenceTimer)
-      silenceTimer = setTimeout(() => recognition.stop(), 5000)
+      silenceTimer = setTimeout(() => recognition.stop(), 3000)
     }
 
     recognition.onresult = (event) => {
@@ -56,17 +61,31 @@ export function SpeechButton({ inputId }: Props) {
 
     recognition.onerror = () => {
       if (silenceTimer) clearTimeout(silenceTimer)
+      recognitionRef.current = null
+      setIsRecording(false)
       input.focus()
     }
 
     recognition.onend = () => {
       if (silenceTimer) clearTimeout(silenceTimer)
+      recognitionRef.current = null
+      setIsRecording(false)
       input.focus()
     }
 
+    recognitionRef.current = recognition
+    setIsRecording(true)
     recognition.start()
     scheduleAutoStop()
   }
 
-  return <button type="button" className="rounded-md border px-3 py-2" onClick={onClick}>🎤</button>
+  return (
+    <button
+      type="button"
+      className={`rounded-md border px-3 py-2 transition ${isRecording ? 'border-blue-600 bg-blue-100 ring-2 ring-blue-300' : ''}`}
+      onClick={onClick}
+    >
+      🎤
+    </button>
+  )
 }
