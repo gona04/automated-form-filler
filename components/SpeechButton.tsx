@@ -5,7 +5,9 @@ type Props = { inputId: string }
 type SpeechCtor = new () => {
   interimResults: boolean
   continuous: boolean
-  onresult: ((event: { resultIndex: number; results: { 0?: { transcript?: string }; isFinal?: boolean }[] }) => void) | null
+  onresult: ((event: { results: { 0?: { transcript?: string }; isFinal?: boolean }[] }) => void) | null
+  onerror?: (() => void) | null
+  onend?: (() => void) | null
   start: () => void
 }
 
@@ -17,14 +19,34 @@ export function SpeechButton({ inputId }: Props) {
   const onClick = (): void => {
     const input = document.getElementById(inputId) as HTMLInputElement | null
     if (!input) return
+
     const recognition = new SpeechRecognition()
     recognition.interimResults = true
     recognition.continuous = false
+
+    let finalizedText = ''
+
     recognition.onresult = (event) => {
-      let text = ''
-      for (let i = event.resultIndex; i < event.results.length; i += 1) text += event.results[i][0]?.transcript ?? ''
-      input.value = text
+      const interimSegments: string[] = []
+      for (let i = 0; i < event.results.length; i += 1) {
+        const transcript = event.results[i][0]?.transcript?.trim()
+        if (!transcript) continue
+        if (event.results[i].isFinal) finalizedText = `${finalizedText} ${transcript}`.trim()
+        else interimSegments.push(transcript)
+      }
+
+      const interimText = interimSegments.join(' ').trim()
+      input.value = `${finalizedText} ${interimText}`.trim()
     }
+
+    recognition.onerror = () => {
+      input.focus()
+    }
+
+    recognition.onend = () => {
+      input.focus()
+    }
+
     recognition.start()
   }
 
