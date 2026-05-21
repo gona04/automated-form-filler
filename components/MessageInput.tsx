@@ -55,9 +55,14 @@ export function MessageInput() {
           />
         </div>
         <div className="h-px bg-zinc-200/70" />
-        <div className="flex h-12 items-center justify-end gap-2">
-          <SpeechButton inputId={INPUT_ID} />
-          <button disabled={isStreaming} className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit">Send</button>
+        <div className="grid h-12 grid-cols-3 items-center">
+          <div />
+          <div className="flex justify-center">
+            <SpeechButton inputId={INPUT_ID} />
+          </div>
+          <div className="flex justify-end">
+            <button disabled={isStreaming} className="rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50" type="submit">Send</button>
+          </div>
         </div>
       </form>
       {lastError ? <p className="mt-2 text-sm text-red-600">Error: {lastError}</p> : null}
