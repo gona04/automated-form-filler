@@ -2,7 +2,7 @@ export interface AIAdapter {
   streamResponse(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): AsyncGenerator<string>
 }
 
-const DEFAULT_MODEL = process.env.HF_MODEL_ID ?? 'Qwen/Qwen2.5-7B-Instruct'
+const DEFAULT_MODEL = process.env.OPENAI_MODEL ?? 'gpt-3.5-turbo'
 
 const describeError = (error: unknown): string => {
   if (error instanceof Error) {
@@ -12,27 +12,24 @@ const describeError = (error: unknown): string => {
   return 'Unknown error'
 }
 
-const isDnsResolutionIssue = (error: unknown): boolean => {
-  const message = error instanceof Error ? error.message.toLowerCase() : ''
-  return message.includes('enotfound') || message.includes('dns') || message.includes('could not resolve') || message.includes('fetch failed')
-}
-
 const enrichProviderError = (status: number, bodyText: string, model: string): string => {
   const lowered = bodyText.toLowerCase()
-  if (status === 400 && lowered.includes('model not supported by provider')) {
-    return `Model '${model}' is not available on the selected Hugging Face provider endpoint. Set HF_MODEL_ID to a provider-supported chat model (for example: Qwen/Qwen2.5-7B-Instruct, meta-llama/Llama-3.1-8B-Instruct) or override HF_BASE_URL/HF_FALLBACK_BASE_URL.`
+  if (status === 404 && lowered.includes('model')) {
+    return `Model '${model}' is not available for your account. Set OPENAI_MODEL to a model you have access to.`
+  }
+  if (status === 429) {
+    return 'OpenAI rate limit reached. Retry later or increase your API limits.'
   }
   return ''
 }
 
-export class HuggingFaceAdapter implements AIAdapter {
+export class OpenAIAdapter implements AIAdapter {
   private model = DEFAULT_MODEL
-  private apiKey = process.env.HF_API_KEY
-  private baseUrl = process.env.HF_BASE_URL ?? 'https://api-inference.huggingface.co'
-  private fallbackBaseUrl = process.env.HF_FALLBACK_BASE_URL ?? 'https://router.huggingface.co/hf-inference'
+  private apiKey = process.env.OPENAI_API_KEY
+  private baseUrl = process.env.OPENAI_BASE_URL ?? 'https://api.openai.com/v1'
 
-  private async request(baseUrl: string, messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): Promise<Response> {
-    return fetch(`${baseUrl}/models/${this.model}/v1/chat/completions`, {
+  private async request(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): Promise<Response> {
+    return fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -44,21 +41,13 @@ export class HuggingFaceAdapter implements AIAdapter {
   }
 
   async *streamResponse(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): AsyncGenerator<string> {
-    if (!this.apiKey) throw new Error('HF_API_KEY is required')
+    if (!this.apiKey) throw new Error('OPENAI_API_KEY is required')
 
     let response: Response
     try {
-      response = await this.request(this.baseUrl, messages, systemPrompt)
+      response = await this.request(messages, systemPrompt)
     } catch (error: unknown) {
-      if (isDnsResolutionIssue(error) && this.baseUrl !== this.fallbackBaseUrl) {
-        try {
-          response = await this.request(this.fallbackBaseUrl, messages, systemPrompt)
-        } catch (fallbackError: unknown) {
-          throw new Error(`Network request to Hugging Face failed on both primary (${this.baseUrl}) and fallback (${this.fallbackBaseUrl}). Primary: ${describeError(error)}. Fallback: ${describeError(fallbackError)}`)
-        }
-      } else {
-        throw new Error(`Network request to Hugging Face failed. ${describeError(error)}`)
-      }
+      throw new Error(`Network request to OpenAI failed. ${describeError(error)}`)
     }
 
     if (!response.ok || !response.body) {
@@ -92,4 +81,4 @@ export class HuggingFaceAdapter implements AIAdapter {
   }
 }
 
-export const ai: AIAdapter = new HuggingFaceAdapter()
+export const ai: AIAdapter = new OpenAIAdapter()
