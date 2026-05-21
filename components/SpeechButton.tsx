@@ -9,6 +9,7 @@ type SpeechCtor = new () => {
   onerror?: (() => void) | null
   onend?: (() => void) | null
   start: () => void
+  stop: () => void
 }
 
 export function SpeechButton({ inputId }: Props) {
@@ -44,6 +45,7 @@ export function SpeechButton({ inputId }: Props) {
     }
 
     recognition.start()
+    scheduleAutoStop()
   }
 
   return <button type="button" className="rounded-md border px-3 py-2" onClick={onClick}>🎤</button>
