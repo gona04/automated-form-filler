@@ -2,6 +2,14 @@ export interface AIAdapter {
   streamResponse(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): AsyncGenerator<string>
 }
 
+const describeError = (error: unknown): string => {
+  if (error instanceof Error) {
+    const cause = typeof error.cause === 'string' ? error.cause : ''
+    return `${error.name}: ${error.message}${cause ? ` | cause: ${cause}` : ''}`
+  }
+  return 'Unknown error'
+}
+
 export class HuggingFaceAdapter implements AIAdapter {
   private model = process.env.HF_MODEL_ID ?? 'mistralai/Mistral-7B-Instruct-v0.2'
   private apiKey = process.env.HF_API_KEY
@@ -9,17 +17,26 @@ export class HuggingFaceAdapter implements AIAdapter {
   async *streamResponse(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): AsyncGenerator<string> {
     if (!this.apiKey) throw new Error('HF_API_KEY is required')
 
-    const response = await fetch(`https://api-inference.huggingface.co/models/${this.model}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        stream: true,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      }),
-    })
+    let response: Response
+    try {
+      response = await fetch(`https://api-inference.huggingface.co/models/${this.model}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.model,
+          stream: true,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        }),
+      })
+    } catch (error: unknown) {
+      throw new Error(`Network request to Hugging Face failed. ${describeError(error)}`)
+    }
 
-    if (!response.ok || !response.body) throw new Error(`AI request failed: ${response.status}`)
+    if (!response.ok || !response.body) {
+      const bodyText = await response.text().catch(() => '')
+      const safeBody = bodyText.slice(0, 200)
+      throw new Error(`AI request failed: status=${response.status} statusText=${response.statusText}${safeBody ? ` body=${safeBody}` : ''}`)
+    }
 
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
