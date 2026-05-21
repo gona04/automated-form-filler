@@ -1,9 +1,11 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { sendMessage } from '@/lib/sseClient'
 import { useChatStore } from '@/store/chatStore'
 import { useRouter } from 'next/navigation'
-import { SpeechButton } from './SpeechButton'
+
+const SpeechButton = dynamic(() => import('./SpeechButton').then((mod) => mod.SpeechButton), { ssr: false })
 
 const INPUT_ID = 'chat-message-input'
 
