@@ -9,7 +9,7 @@ type SpeechRecognitionEventLike = { resultIndex: number; results: SpeechRecognit
 type SpeechCtor = new () => {
   interimResults: boolean
   continuous: boolean
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null
+  onresult: ((event: { results: { 0?: { transcript?: string }; isFinal?: boolean }[] }) => void) | null
   onerror?: (() => void) | null
   onend?: (() => void) | null
   start: () => void
