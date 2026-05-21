@@ -2,6 +2,8 @@ export interface AIAdapter {
   streamResponse(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): AsyncGenerator<string>
 }
 
+const DEFAULT_MODEL = process.env.HF_MODEL_ID ?? 'Qwen/Qwen2.5-7B-Instruct'
+
 const describeError = (error: unknown): string => {
   if (error instanceof Error) {
     const cause = typeof error.cause === 'string' ? error.cause : ''
@@ -15,8 +17,16 @@ const isDnsResolutionIssue = (error: unknown): boolean => {
   return message.includes('enotfound') || message.includes('dns') || message.includes('could not resolve') || message.includes('fetch failed')
 }
 
+const enrichProviderError = (status: number, bodyText: string, model: string): string => {
+  const lowered = bodyText.toLowerCase()
+  if (status === 400 && lowered.includes('model not supported by provider')) {
+    return `Model '${model}' is not available on the selected Hugging Face provider endpoint. Set HF_MODEL_ID to a provider-supported chat model (for example: Qwen/Qwen2.5-7B-Instruct, meta-llama/Llama-3.1-8B-Instruct) or override HF_BASE_URL/HF_FALLBACK_BASE_URL.`
+  }
+  return ''
+}
+
 export class HuggingFaceAdapter implements AIAdapter {
-  private model = process.env.HF_MODEL_ID ?? 'mistralai/Mistral-7B-Instruct-v0.2'
+  private model = DEFAULT_MODEL
   private apiKey = process.env.HF_API_KEY
   private baseUrl = process.env.HF_BASE_URL ?? 'https://api-inference.huggingface.co'
   private fallbackBaseUrl = process.env.HF_FALLBACK_BASE_URL ?? 'https://router.huggingface.co/hf-inference'
@@ -53,8 +63,9 @@ export class HuggingFaceAdapter implements AIAdapter {
 
     if (!response.ok || !response.body) {
       const bodyText = await response.text().catch(() => '')
-      const safeBody = bodyText.slice(0, 200)
-      throw new Error(`AI request failed: status=${response.status} statusText=${response.statusText}${safeBody ? ` body=${safeBody}` : ''}`)
+      const safeBody = bodyText.slice(0, 300)
+      const help = enrichProviderError(response.status, safeBody, this.model)
+      throw new Error(`AI request failed: status=${response.status} statusText=${response.statusText}${safeBody ? ` body=${safeBody}` : ''}${help ? ` hint=${help}` : ''}`)
     }
 
     const reader = response.body.getReader()
