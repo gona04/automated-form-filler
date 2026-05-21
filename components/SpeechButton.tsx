@@ -27,16 +27,12 @@ export function SpeechButton({ inputId }: Props) {
     let finalizedText = ''
 
     recognition.onresult = (event) => {
-      const interimSegments: string[] = []
-      for (let i = 0; i < event.results.length; i += 1) {
+      const segments: string[] = []
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const transcript = event.results[i][0]?.transcript?.trim()
-        if (!transcript) continue
-        if (event.results[i].isFinal) finalizedText = `${finalizedText} ${transcript}`.trim()
-        else interimSegments.push(transcript)
+        if (transcript) segments.push(transcript)
       }
-
-      const interimText = interimSegments.join(' ').trim()
-      input.value = `${finalizedText} ${interimText}`.trim()
+      input.value = segments.join(' ')
     }
 
     recognition.onerror = () => {
