@@ -4,10 +4,25 @@ import { useRef, useState } from 'react'
 
 type Props = { inputId: string }
 
+type SpeechResult = {
+  0?: { transcript?: string }
+  isFinal?: boolean
+}
+
+type SpeechResultList = {
+  length: number
+  [index: number]: SpeechResult
+}
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number
+  results: SpeechResultList
+}
+
 type SpeechCtor = new () => {
   interimResults: boolean
   continuous: boolean
-  onresult: ((event: { results: { 0?: { transcript?: string }; isFinal?: boolean }[] }) => void) | null
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
   onerror?: (() => void) | null
   onend?: (() => void) | null
   start: () => void
@@ -27,7 +42,7 @@ export function SpeechButton({ inputId }: Props) {
       return
     }
 
-    const input = document.getElementById(inputId) as HTMLInputElement | null
+    const input = document.getElementById(inputId) as HTMLTextAreaElement | null
     if (!input) return
 
     input.focus()
@@ -41,7 +56,7 @@ export function SpeechButton({ inputId }: Props) {
 
     const scheduleAutoStop = (): void => {
       if (silenceTimer) clearTimeout(silenceTimer)
-      silenceTimer = setTimeout(() => recognition.stop(), 3000)
+      silenceTimer = setTimeout(() => recognition.stop(), 4000)
     }
 
     recognition.onresult = (event) => {
@@ -56,6 +71,7 @@ export function SpeechButton({ inputId }: Props) {
       const interimText = interimSegments.join(' ').trim()
       input.value = `${finalizedText} ${interimText}`.trim()
       input.focus()
+      input.setSelectionRange(input.value.length, input.value.length)
       scheduleAutoStop()
     }
 
@@ -71,6 +87,7 @@ export function SpeechButton({ inputId }: Props) {
       recognitionRef.current = null
       setIsRecording(false)
       input.focus()
+      input.setSelectionRange(input.value.length, input.value.length)
     }
 
     recognitionRef.current = recognition
@@ -82,10 +99,14 @@ export function SpeechButton({ inputId }: Props) {
   return (
     <button
       type="button"
-      className={`rounded-md border px-3 py-2 transition ${isRecording ? 'border-blue-600 bg-blue-100 ring-2 ring-blue-300' : ''}`}
+      aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+      className={`rounded-full border p-3 transition ${isRecording ? 'border-red-600 bg-red-100 ring-2 ring-red-300' : 'border-zinc-300 bg-white hover:bg-zinc-50'}`}
       onClick={onClick}
     >
-      🎤
+      <svg viewBox="0 0 24 24" className={`h-5 w-5 ${isRecording ? 'text-red-700' : 'text-zinc-700'}`} fill="currentColor" aria-hidden>
+        <rect x="8" y="2.5" width="8" height="13" rx="4" />
+        <path d="M18 10.5a1 1 0 1 0-2 0 4 4 0 1 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V19H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.59a6 6 0 0 0 5-5.91Z" />
+      </svg>
     </button>
   )
 }
