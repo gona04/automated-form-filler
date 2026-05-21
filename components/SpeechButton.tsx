@@ -4,10 +4,25 @@ import { useRef, useState } from 'react'
 
 type Props = { inputId: string }
 
+type SpeechResult = {
+  0?: { transcript?: string }
+  isFinal?: boolean
+}
+
+type SpeechResultList = {
+  length: number
+  [index: number]: SpeechResult
+}
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number
+  results: SpeechResultList
+}
+
 type SpeechCtor = new () => {
   interimResults: boolean
   continuous: boolean
-  onresult: ((event: { results: { 0?: { transcript?: string }; isFinal?: boolean }[] }) => void) | null
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
   onerror?: (() => void) | null
   onend?: (() => void) | null
   start: () => void
@@ -41,7 +56,7 @@ export function SpeechButton({ inputId }: Props) {
 
     const scheduleAutoStop = (): void => {
       if (silenceTimer) clearTimeout(silenceTimer)
-      silenceTimer = setTimeout(() => recognition.stop(), 3000)
+      silenceTimer = setTimeout(() => recognition.stop(), 4000)
     }
 
     recognition.onresult = (event) => {
@@ -56,6 +71,7 @@ export function SpeechButton({ inputId }: Props) {
       const interimText = interimSegments.join(' ').trim()
       input.value = `${finalizedText} ${interimText}`.trim()
       input.focus()
+      input.setSelectionRange(input.value.length, input.value.length)
       scheduleAutoStop()
     }
 
@@ -71,6 +87,7 @@ export function SpeechButton({ inputId }: Props) {
       recognitionRef.current = null
       setIsRecording(false)
       input.focus()
+      input.setSelectionRange(input.value.length, input.value.length)
     }
 
     recognitionRef.current = recognition
@@ -80,12 +97,19 @@ export function SpeechButton({ inputId }: Props) {
   }
 
   return (
-    <button
-      type="button"
-      className={`rounded-md border px-3 py-2 transition ${isRecording ? 'border-blue-600 bg-blue-100 ring-2 ring-blue-300' : ''}`}
-      onClick={onClick}
-    >
-      🎤
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+        className={`rounded-md border px-3 py-2 transition ${isRecording ? 'border-red-600 bg-red-100 ring-2 ring-red-300' : ''}`}
+        onClick={onClick}
+      >
+        🎤
+      </button>
+      <span className={`text-xs font-medium ${isRecording ? 'text-red-600' : 'text-zinc-500'}`}>
+        {isRecording ? 'Listening…' : 'Mic off'}
+      </span>
+      {isRecording ? <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden /> : null}
+    </div>
   )
 }
