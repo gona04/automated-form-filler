@@ -12,12 +12,14 @@ global.fetch = jest.fn()
 describe('NLP Extract', () => {
   const mockSetLoading = jest.fn()
   const mockSetAll = jest.fn()
+  const mockSetError = jest.fn()
 
   beforeEach(() => {
     jest.clearAllMocks()
     ;(useFormStore.getState as jest.Mock).mockReturnValue({
       setLoading: mockSetLoading,
       setAll: mockSetAll,
+      setError: mockSetError,
     })
   })
 
@@ -36,6 +38,7 @@ describe('NLP Extract', () => {
     }
 
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue(mockResponse),
     })
 
@@ -49,6 +52,7 @@ describe('NLP Extract', () => {
 
   it('should set loading true before fetch', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({}),
     })
 
@@ -60,6 +64,7 @@ describe('NLP Extract', () => {
 
   it('should set loading false after fetch', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({}),
     })
 
@@ -84,6 +89,7 @@ describe('NLP Extract', () => {
 
   it('should call extract API endpoint', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({}),
     })
 
@@ -101,6 +107,7 @@ describe('NLP Extract', () => {
 
   it('should send transcript in request body', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({}),
     })
 
@@ -113,6 +120,7 @@ describe('NLP Extract', () => {
 
   it('should handle empty response', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({}),
     })
 
@@ -129,6 +137,7 @@ describe('NLP Extract', () => {
     }
 
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue(partialResponse),
     })
 

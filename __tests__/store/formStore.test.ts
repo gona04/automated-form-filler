@@ -14,6 +14,7 @@ describe('Form Store', () => {
       dealbreakers: '',
       additionalNotes: '',
       isLoading: false,
+      error: '',
     })
   })
 

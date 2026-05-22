@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { sendMessage } from '@/lib/sseClient'
+import { sendMessage } from '@/lib/interview/flow'
 import { useChatStore } from '@/store/chatStore'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'

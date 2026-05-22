@@ -3,14 +3,16 @@ import ChatPage from '@/app/chat/page'
 import { ChatWindow } from '@/components/ChatWindow'
 import { MessageInput } from '@/components/MessageInput'
 
-jest.mock('@/components/ChatWindow')
-jest.mock('@/components/MessageInput')
+jest.mock('@/components/ChatWindow', () => ({
+  ChatWindow: jest.fn(() => <div data-testid="chat-window">Chat Window</div>),
+}))
+jest.mock('@/components/MessageInput', () => ({
+  MessageInput: jest.fn(() => <div data-testid="message-input">Message Input</div>),
+}))
 
 describe('Chat Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(ChatWindow as jest.Mock).mockReturnValue(<div data-testid="chat-window">Chat Window</div>)
-    ;(MessageInput as jest.Mock).mockReturnValue(<div data-testid="message-input">Message Input</div>)
   })
 
   it('should render chat window component', () => {

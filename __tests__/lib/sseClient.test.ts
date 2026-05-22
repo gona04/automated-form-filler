@@ -24,6 +24,7 @@ jest.mock('@/store/formStore', () => ({
     getState: jest.fn(() => ({
       setLoading: jest.fn(),
       setAll: jest.fn(),
+      setError: jest.fn(),
     })),
   },
 }))
@@ -33,6 +34,7 @@ global.fetch = jest.fn()
 describe('SSE Client', () => {
   const mockState = {
     clearError: jest.fn(),
+    setError: jest.fn(),
     addUserMessage: jest.fn(),
     setUserName: jest.fn(),
     startBotMessage: jest.fn(),
@@ -139,6 +141,7 @@ describe('SSE Client', () => {
 
   it('should preserve spaces between streamed SSE tokens', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
       body: {
         getReader: () => ({
           read: jest.fn()
@@ -211,7 +214,8 @@ describe('SSE Client', () => {
 
   it('should mark complete on last question', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
-      body: null,
+      ok: true,
+      json: jest.fn().mockResolvedValue({}),
     })
 
     const messageTranscript = QUESTIONS.map((q, i) => (i % 2 === 0 ? `bot: ${q}` : 'user: answer')).join('\n')
@@ -234,7 +238,7 @@ describe('SSE Client', () => {
 
   it('should call onComplete callback on last question', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
-      body: null,
+      ok: true,
       json: jest.fn().mockResolvedValue({}),
     })
 
@@ -254,7 +258,8 @@ describe('SSE Client', () => {
 
   it('should extract profile on completion', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
-      body: null,
+      ok: true,
+      json: jest.fn().mockResolvedValue({ preferredName: 'John' }),
     })
 
     const mockOnComplete = jest.fn()
@@ -285,7 +290,9 @@ describe('SSE Client', () => {
     }
     ;(useChatStore.getState as jest.Mock).mockReturnValue(stateWithMessage)
 
-    await expect(sendMessage('answer', jest.fn())).rejects.toThrow('Network error')
+    await sendMessage('idk', jest.fn())
+
+    expect(mockState.setError).toHaveBeenCalled()
   })
 
   it('should handle empty user input', async () => {

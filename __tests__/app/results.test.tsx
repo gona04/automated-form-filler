@@ -12,7 +12,7 @@ jest.mock('@/components/FormField', () => {
 })
 
 describe('Results Page', () => {
-  const mockFormState = {
+  const profileSnapshot = {
     preferredName: 'John Doe',
     backgroundSummary: 'Software engineer',
     workEnvironment: 'Remote',
@@ -23,6 +23,14 @@ describe('Results Page', () => {
     timeline: '1 month',
     dealbreakers: 'None',
     additionalNotes: 'Notes',
+  }
+
+  const mockFormState = {
+    ...profileSnapshot,
+    isLoading: false,
+    error: '',
+    getSnapshot: jest.fn(() => profileSnapshot),
+    reset: jest.fn(),
   }
 
   const mockRouter = {
@@ -153,15 +161,14 @@ describe('Results Page', () => {
     // Start over button click tested in integration
   })
 
-  it('should handle submit button click', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+  it('should save profile on submit when required fields are present', () => {
+    const setItem = jest.spyOn(Storage.prototype, 'setItem')
     render(<ResultsPage />)
-    const submitButton = screen.getByRole('button', { name: /Submit/i })
+    fireEvent.click(screen.getByRole('button', { name: /Submit profile/i }))
 
-    fireEvent.click(submitButton)
-
-    expect(consoleSpy).toHaveBeenCalled()
-    consoleSpy.mockRestore()
+    expect(setItem).toHaveBeenCalledWith('jobfinder-profile', JSON.stringify(profileSnapshot))
+    expect(screen.getByText(/Profile saved successfully/i)).toBeInTheDocument()
+    setItem.mockRestore()
   })
 
   it('should display form fields with correct values', () => {
@@ -186,6 +193,6 @@ describe('Results Page', () => {
     const buttons = screen.getAllByRole('button')
     expect(buttons[0]).toHaveTextContent('Copy profile')
     expect(buttons[1]).toHaveTextContent('Start over')
-    expect(buttons[2]).toHaveTextContent('Submit')
+    expect(buttons[2]).toHaveTextContent('Submit profile')
   })
 })

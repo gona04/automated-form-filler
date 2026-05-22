@@ -1,9 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MessageInput } from '@/components/MessageInput'
-import * as sseClient from '@/lib/sseClient'
 
-jest.mock('@/lib/sseClient')
+jest.mock('@/lib/interview/flow')
 jest.mock('@/store/chatStore', () => ({
   useChatStore: jest.fn(),
 }))
@@ -15,7 +14,8 @@ jest.mock('next/dynamic', () => ({
 }))
 
 describe('MessageInput Component', () => {
-  const mockSendMessage = sseClient.sendMessage as jest.Mock
+  const flow = require('@/lib/interview/flow')
+  const mockSendMessage = flow.sendMessage as jest.Mock
   const mockRouter = {
     push: jest.fn(),
   }

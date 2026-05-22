@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MessageInput } from '@/components/MessageInput'
 
-jest.mock('@/lib/sseClient', () => ({
+jest.mock('@/lib/interview/flow', () => ({
   sendMessage: jest.fn(),
 }))
 
@@ -58,7 +58,7 @@ describe('MessageInput - Additional Tests', () => {
   it('should clear textarea value on form reset', async () => {
     const { useChatStore } = require('@/store/chatStore')
     const mockSendMessage = jest.fn().mockResolvedValue(undefined)
-    jest.doMock('@/lib/sseClient', () => ({
+    jest.doMock('@/lib/interview/flow', () => ({
       sendMessage: mockSendMessage,
     }))
 

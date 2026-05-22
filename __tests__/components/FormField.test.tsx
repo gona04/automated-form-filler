@@ -81,9 +81,9 @@ describe('FormField Component', () => {
     )
 
     const input = screen.getByRole('textbox') as HTMLInputElement
-    await userEvent.type(input, 'Jane')
+    fireEvent.change(input, { target: { value: 'Jane' } })
 
-    expect(mockSetField).toHaveBeenLastCalledWith('preferredName', 'Jane')
+    expect(mockSetField).toHaveBeenCalledWith('preferredName', 'Jane')
   })
 
   it('should call setField when textarea value changes', async () => {

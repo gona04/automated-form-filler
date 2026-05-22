@@ -51,15 +51,14 @@ describe('OpenAI Adapter', () => {
 
     it('should handle successful streaming response', async () => {
       const mockStream = new ReadableStream({
-        enqueue(controller) {
+        start(controller) {
           controller.enqueue(
             new TextEncoder().encode(
               'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'
             )
           )
-          controller.enqueue(
-            new TextEncoder().encode('data: [DONE]\n\n')
-          )
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+          controller.close()
         },
       })
 
@@ -151,13 +150,10 @@ describe('OpenAI Adapter', () => {
 
     it('should handle empty chunks', async () => {
       const mockStream = new ReadableStream({
-        enqueue(controller) {
-          controller.enqueue(
-            new TextEncoder().encode('data: \n\n')
-          )
-          controller.enqueue(
-            new TextEncoder().encode('data: [DONE]\n\n')
-          )
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: \n\n'))
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+          controller.close()
         },
       })
 
@@ -178,12 +174,13 @@ describe('OpenAI Adapter', () => {
 
     it('should handle multiple tokens', async () => {
       const mockStream = new ReadableStream({
-        enqueue(controller) {
+        start(controller) {
           controller.enqueue(
             new TextEncoder().encode(
               'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\ndata: {"choices":[{"delta":{"content":" "}}]}\n\ndata: {"choices":[{"delta":{"content":"World"}}]}\n\ndata: [DONE]\n\n'
             )
           )
+          controller.close()
         },
       })
 
@@ -204,10 +201,9 @@ describe('OpenAI Adapter', () => {
 
     it('should include system message in request', async () => {
       const mockStream = new ReadableStream({
-        enqueue(controller) {
-          controller.enqueue(
-            new TextEncoder().encode('data: [DONE]\n\n')
-          )
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+          controller.close()
         },
       })
 
@@ -231,10 +227,9 @@ describe('OpenAI Adapter', () => {
 
     it('should request streaming response', async () => {
       const mockStream = new ReadableStream({
-        enqueue(controller) {
-          controller.enqueue(
-            new TextEncoder().encode('data: [DONE]\n\n')
-          )
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'))
+          controller.close()
         },
       })
 

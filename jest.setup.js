@@ -10,18 +10,16 @@ if (typeof global.TextEncoder === 'undefined') {
 // Polyfill ReadableStream for tests
 if (typeof global.ReadableStream === 'undefined') {
   global.ReadableStream = class ReadableStream {
-    constructor(underlyingSource) {
-      this.underlyingSource = underlyingSource
+    constructor(underlyingSource = {}) {
       this.chunks = []
-    }
-
-    async *[Symbol.asyncIterator]() {
       const controller = {
         enqueue: (chunk) => this.chunks.push(chunk),
+        close: () => {},
       }
-      this.underlyingSource?.enqueue?.(controller)
-      for (const chunk of this.chunks) {
-        yield chunk
+      if (typeof underlyingSource.start === 'function') {
+        underlyingSource.start(controller)
+      } else if (typeof underlyingSource.enqueue === 'function') {
+        underlyingSource.enqueue(controller)
       }
     }
 

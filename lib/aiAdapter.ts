@@ -1,3 +1,5 @@
+import { parseSseDataLine } from '@/lib/sse/parseStream'
+
 export interface AIAdapter {
   streamResponse(messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): AsyncGenerator<string>
 }
@@ -71,8 +73,8 @@ export class OpenAIAdapter implements AIAdapter {
       for (const line of chunks) {
         const trimmed = line.trim()
         if (!trimmed.startsWith('data:')) continue
-        const payload = trimmed.slice(5).trim()
-        if (payload === '[DONE]') return
+        const payload = parseSseDataLine(trimmed)
+        if (payload === null || payload === '' || payload === '[DONE]') return
         const parsed = JSON.parse(payload) as { choices?: { delta?: { content?: string } }[] }
         const token = parsed.choices?.[0]?.delta?.content
         if (token) yield token
