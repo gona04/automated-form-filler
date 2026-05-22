@@ -1,8 +1,15 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
-type Props = { inputId: string }
+type Props = {
+  inputId: string
+  onReady?: (handle: SpeechButtonHandle) => void
+}
+
+export type SpeechButtonHandle = { stopRecording: () => void }
+
+const SILENCE_STOP_MS = 2000
 
 type SpeechResult = {
   0?: { transcript?: string }
@@ -29,21 +36,48 @@ type SpeechCtor = new () => {
   stop: () => void
 }
 
-export function SpeechButton({ inputId }: Props) {
+export const SpeechButton = forwardRef<SpeechButtonHandle, Props>(function SpeechButton({ inputId, onReady }, ref) {
   const [isRecording, setIsRecording] = useState(false)
   const recognitionRef = useRef<InstanceType<SpeechCtor> | null>(null)
-  const speechWindow = typeof window === 'undefined' ? undefined : (window as Window & { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor })
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const acceptingResultsRef = useRef(false)
+
+  const clearSilenceTimer = useCallback((): void => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
+    silenceTimerRef.current = null
+  }, [])
+
+  const stopRecording = useCallback((): void => {
+    acceptingResultsRef.current = false
+    clearSilenceTimer()
+    const recognition = recognitionRef.current
+    if (!recognition) {
+      setIsRecording(false)
+      return
+    }
+    recognition.onresult = null
+    recognition.stop()
+    setIsRecording(false)
+  }, [clearSilenceTimer])
+
+  useImperativeHandle(ref, () => ({ stopRecording }), [stopRecording])
+
+  useEffect(() => {
+    onReady?.({ stopRecording })
+  }, [onReady, stopRecording])
+
+  const speechWindow =
+    typeof window === 'undefined' ? undefined : (window as Window & { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor })
   const SpeechRecognition = speechWindow?.SpeechRecognition ?? speechWindow?.webkitSpeechRecognition
-  if (!SpeechRecognition) return <></>
 
   const onClick = (): void => {
     if (recognitionRef.current && isRecording) {
-      recognitionRef.current.stop()
+      stopRecording()
       return
     }
 
     const input = document.getElementById(inputId) as HTMLTextAreaElement | null
-    if (!input) return
+    if (!input || !SpeechRecognition) return
 
     input.focus()
 
@@ -52,14 +86,16 @@ export function SpeechButton({ inputId }: Props) {
     recognition.continuous = true
 
     let finalizedText = input.value.trim()
-    let silenceTimer: ReturnType<typeof setTimeout> | null = null
+    acceptingResultsRef.current = true
 
     const scheduleAutoStop = (): void => {
-      if (silenceTimer) clearTimeout(silenceTimer)
-      silenceTimer = setTimeout(() => recognition.stop(), 4000)
+      clearSilenceTimer()
+      silenceTimerRef.current = setTimeout(() => recognition.stop(), SILENCE_STOP_MS)
     }
 
     recognition.onresult = (event) => {
+      if (!acceptingResultsRef.current) return
+
       const interimSegments: string[] = []
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const transcript = event.results[i][0]?.transcript?.trim()
@@ -77,14 +113,16 @@ export function SpeechButton({ inputId }: Props) {
     }
 
     recognition.onerror = () => {
-      if (silenceTimer) clearTimeout(silenceTimer)
+      clearSilenceTimer()
+      acceptingResultsRef.current = false
       recognitionRef.current = null
       setIsRecording(false)
       input.focus()
     }
 
     recognition.onend = () => {
-      if (silenceTimer) clearTimeout(silenceTimer)
+      clearSilenceTimer()
+      acceptingResultsRef.current = false
       recognitionRef.current = null
       setIsRecording(false)
       input.focus()
@@ -97,10 +135,10 @@ export function SpeechButton({ inputId }: Props) {
     scheduleAutoStop()
   }
 
+  if (!SpeechRecognition) return null
+
   return (
-    <div className="flex items-center gap-2">
-      {isRecording ? <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden /> : null}
-      <span className={`text-xs font-medium ${isRecording ? 'text-red-600' : 'text-zinc-500'}`}>{isRecording ? 'Mic on' : 'Mic off'}</span>
+    <div className="flex items-center flex-col gap-2">
       <button
         type="button"
         aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
@@ -112,6 +150,8 @@ export function SpeechButton({ inputId }: Props) {
           <path d="M18 10.5a1 1 0 1 0-2 0 4 4 0 1 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V19H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.59a6 6 0 0 0 5-5.91Z" />
         </svg>
       </button>
+      {isRecording ? <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden /> : null}
+      <span className={`text-xs font-medium ${isRecording ? 'text-red-600' : 'text-zinc-500'}`}>{isRecording ? 'Mic on' : 'Mic off'}</span>
     </div>
   )
-}
+})

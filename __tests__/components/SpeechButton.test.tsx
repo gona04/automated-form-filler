@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { createRef } from 'react'
+import { act, render, screen, fireEvent } from '@testing-library/react'
 import { SpeechButton } from '@/components/SpeechButton'
 
 describe('SpeechButton Component', () => {
@@ -84,16 +85,16 @@ describe('SpeechButton Component', () => {
   })
 
   it('should stop recording when button clicked again', () => {
-    const { rerender } = render(<SpeechButton inputId="chat-message-input" />)
+    render(<SpeechButton inputId="chat-message-input" />)
     const button = screen.getByRole('button')
     fireEvent.click(button)
     expect(screen.getByText('Mic on')).toBeInTheDocument()
-    jest.runAllTimers()
-    
-    // Wrap the onend call in an action to properly handle state updates
-    fireEvent.click(button) // Simulate stop
-    rerender(<SpeechButton inputId="chat-message-input" />)
-    
+
+    fireEvent.click(button)
+    act(() => {
+      mockRecognition.onend?.()
+    })
+
     expect(screen.getByText('Mic off')).toBeInTheDocument()
   })
 
@@ -164,5 +165,49 @@ describe('SpeechButton Component', () => {
     const button = screen.getByRole('button')
     fireEvent.click(button)
     expect(mockRecognition.continuous).toBe(true)
+  })
+
+  it('should stop recording when stopRecording is called via ref', () => {
+    const ref = createRef<{ stopRecording: () => void }>()
+    render(<SpeechButton ref={ref} inputId="chat-message-input" />)
+    fireEvent.click(screen.getByRole('button'))
+    expect(screen.getByText('Mic on')).toBeInTheDocument()
+
+    act(() => {
+      ref.current?.stopRecording()
+    })
+
+    expect(mockRecognition.stop).toHaveBeenCalled()
+    expect(screen.getByText('Mic off')).toBeInTheDocument()
+  })
+
+  it('should not update input after stopRecording is called', () => {
+    const ref = createRef<{ stopRecording: () => void }>()
+    render(<SpeechButton ref={ref} inputId="chat-message-input" />)
+    fireEvent.click(screen.getByRole('button'))
+
+    act(() => {
+      ref.current?.stopRecording()
+    })
+
+    mockInput.value = ''
+    act(() => {
+      mockRecognition.onresult?.({
+        resultIndex: 0,
+        results: { length: 1, 0: { 0: { transcript: 'late speech' }, isFinal: true } },
+      })
+    })
+
+    expect(mockInput.value).toBe('')
+  })
+
+  it('should stop recording after 2 seconds of silence', () => {
+    render(<SpeechButton inputId="chat-message-input" />)
+    fireEvent.click(screen.getByRole('button'))
+    expect(mockRecognition.start).toHaveBeenCalled()
+
+    jest.advanceTimersByTime(2000)
+
+    expect(mockRecognition.stop).toHaveBeenCalled()
   })
 })

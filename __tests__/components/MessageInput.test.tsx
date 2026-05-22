@@ -153,8 +153,9 @@ describe('MessageInput Component', () => {
     await userEvent.type(textarea, 'Test message')
     fireEvent.click(sendButton)
 
+    expect(textarea.value).toBe('')
     await waitFor(() => {
-      expect(textarea.value).toBe('')
+      expect(mockSendMessage).toHaveBeenCalledWith('Test message', expect.any(Function))
     })
   })
 
