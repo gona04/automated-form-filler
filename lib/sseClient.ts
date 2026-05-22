@@ -3,6 +3,13 @@ import { QUESTIONS, useChatStore } from '@/store/chatStore'
 
 const closing = (name: string) => `Thanks ${name || 'there'} — I have everything I need. Let me pull together your profile.`
 
+/** Per SSE spec: strip only the single optional space after "data:", not token content. */
+const parseSseDataLine = (line: string): string | null => {
+  if (!line.startsWith('data:')) return null
+  const raw = line.slice(5)
+  return raw.startsWith(' ') ? raw.slice(1) : raw
+}
+
 const isUnclearAnswer = (text: string): boolean => {
   const normalized = text.trim().toLowerCase()
   if (normalized.length < 8) return true
@@ -28,7 +35,8 @@ const askClarifyingQuestion = async (question: string, answer: string): Promise<
     const events = buffer.split('\n\n'); buffer = events.pop() ?? ''
     for (const event of events) {
       const line = event.trim(); if (!line.startsWith('data:')) continue
-      const data = line.slice(5).trim()
+      const data = parseSseDataLine(line)
+      if (data === null) continue
       if (data === '[DONE]' || data.startsWith('[ERROR]')) continue
       full += data
     }

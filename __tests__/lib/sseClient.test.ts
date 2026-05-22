@@ -137,6 +137,32 @@ describe('SSE Client', () => {
     expect(mockState.startBotMessage).toHaveBeenCalled()
   })
 
+  it('should preserve spaces between streamed SSE tokens', async () => {
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      body: {
+        getReader: () => ({
+          read: jest.fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode('data: What\n\ndata:  kinds\n\ndata:  of\n\ndata:  work\n\n'),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+        }),
+      },
+    })
+
+    const stateWithMessage = {
+      ...mockState,
+      currentQuestionIndex: 1,
+      userName: 'John',
+    }
+    ;(useChatStore.getState as jest.Mock).mockReturnValue(stateWithMessage)
+
+    await sendMessage('idk', jest.fn())
+
+    expect(mockState.appendToken).toHaveBeenCalledWith('What kinds of work')
+  })
+
   it('should recognize vague answers (idk)', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       body: {
