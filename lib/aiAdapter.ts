@@ -1,3 +1,4 @@
+import 'server-only'
 import { parseSseDataLine } from '@/lib/sse/parseStream'
 
 export interface AIAdapter {

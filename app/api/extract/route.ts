@@ -1,6 +1,6 @@
 import { ai } from '@/lib/aiAdapter'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const EXTRACT_PROMPT = `You are a structured data extractor.
 Given the job interview conversation below, extract answers into a JSON object with EXACTLY these keys:

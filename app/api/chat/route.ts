@@ -1,6 +1,6 @@
 import { ai } from '@/lib/aiAdapter'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const SYSTEM_PROMPT = `You are a warm, professional career counsellor conducting a structured job preference interview.
 ROLE LOCK
