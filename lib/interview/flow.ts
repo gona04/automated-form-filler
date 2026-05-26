@@ -3,13 +3,34 @@ import { fetchClarifyingQuestion } from '@/lib/interview/clarifying'
 import { QUESTIONS, closingMessage, isUnclearAnswer } from '@/lib/interview/config'
 import { useChatStore } from '@/store/chatStore'
 
+const extractName = (text: string): string => {
+  // handles "call me X" or "you can call me X"
+  const callMe = text.match(/call me (\w+)/i)
+  if (callMe) return callMe[1]
+
+  // handles "my name is X"
+  const myName = text.match(/my name is (\w+)/i)
+  if (myName) return myName[1]
+
+  // handles "I am X" or "I'm X"
+  const iAm = text.match(/i'?m (\w+)|i am (\w+)/i)
+  if (iAm) return iAm[1] || iAm[2]
+
+  // fallback — first capitalised word
+  const capitalised = text.match(/\b[A-Z][a-z]+\b/)
+  if (capitalised) return capitalised[0]
+
+  // last resort — just use whatever they typed trimmed
+  return text.trim()
+}
+
 export async function sendMessage(userText: string, onComplete: () => void): Promise<void> {
   const store = useChatStore.getState()
   store.clearError()
   store.addUserMessage(userText)
 
   if (store.currentQuestionIndex === 0 && !store.userName) {
-    store.setUserName(userText)
+    store.setUserName(extractName(userText))
   }
 
   const { currentQuestionIndex } = useChatStore.getState()

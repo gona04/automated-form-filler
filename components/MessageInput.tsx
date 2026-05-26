@@ -7,7 +7,40 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SpeechButtonHandle } from './SpeechButton'
 
-const SpeechButton = dynamic(() => import('./SpeechButton').then((mod) => mod.SpeechButton), { ssr: false })
+
+const SpeechButton = dynamic(
+  () => import('./SpeechButton').then((mod) => mod.SpeechButton),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center flex-col gap-2">
+        <button
+          type="button"
+          className="rounded-full border p-3 border-zinc-300 bg-white"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="h-5 w-5 text-zinc-700"
+          >
+            <rect
+              x="8"
+              y="2.5"
+              width="8"
+              height="13"
+              rx="4"
+            />
+            <path d="M18 10.5a1 1 0 1 0-2 0 4 4 0 1 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V19H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-2.59a6 6 0 0 0 5-5.91Z" />
+          </svg>
+        </button>
+
+        <span className="text-xs font-medium text-zinc-500">
+          Mic off
+        </span>
+      </div>
+    ),
+  }
+)
 
 export function MessageInput() {
   const isStreaming = useChatStore((s) => s.isStreaming)
