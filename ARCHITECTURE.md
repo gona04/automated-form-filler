@@ -33,7 +33,7 @@ JobFinder is a Next.js App Router app that runs a **scripted interview** (10 fix
 └───────────────────────────┬─────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────┐
-│  API routes (app/api/) — Edge runtime                     │
+│  API routes (app/api/) — Node runtime                     │
 │  - POST /api/chat                                       │
 │  - POST /api/extract                                    │
 └─────────────────────────────────────────────────────────┘
